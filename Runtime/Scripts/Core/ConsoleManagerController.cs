@@ -27,7 +27,7 @@ namespace SpicyConsole
         string allParams;
 
         // A list to store all commands with SpicyCommand attribute
-        
+
         private Dictionary<string,string[]> spicyCommands = new Dictionary<string,string[]>();
 
         void Start()
