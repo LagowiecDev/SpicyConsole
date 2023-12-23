@@ -5,382 +5,237 @@ using System.Reflection;
 using UnityEngine;
 using TMPro;
 using SpicyConsole.Setup;
+using SpicyConsole.Formatting;
+using SpicyConsole.Formatting.BinarySerializing;
 
 namespace SpicyConsole
 {
+    [System.Serializable]
+
     public class ConsoleManagerController : MonoBehaviour
     {
 
-        public static ConsoleManagerController Instance;
+        public static ConsoleManagerController Instance; // For Referencing ConsoleManagerController Instance in Scene :)
 
-        [SerializeField] private TMP_Text consoleOutput; // Make it public
-        [SerializeField] private TMP_Text suggestionsText; // Reference to the TMP_Text for suggestions
+        [Header("Settings")]
 
+        [SerializeField] private bool isLoggingEnabled; // Enables Logging | Console will show Unity Logger Messages
+        [SerializeField] private bool isSuggestionEnabled; // Enables Suggestions | 
+        
+        [SerializeField] private bool areConsoleMessagesEnabled; // Enables SpicyConsoleMessages | Console will log for eg Pakcage Error or other similar stuff
+
+        [Header("Components")]
+
+        [SerializeField] private TMP_Text consoleOutputText; // Reference to TMP_Text for Console Logs;
+        [SerializeField] private TMP_Text consoleSuggestionsText; // Reference to the TMP_Text for suggestions
+
+        // Optional:?
         [SerializeField] private GameObject consoleObject;
 
-        string[] splitedCommand;
-        string[] parametersCommand;
-        List<string> allLogs = new List<string>();
+        //
 
-        bool isListening;
+        public SpicyCommands file;
 
-        string allParams;
+        private Dictionary<string,MethodInfo> commandsDictionary = new Dictionary<string, MethodInfo>();
 
-        // A list to store all commands with SpicyCommand attribute
-
-        private Dictionary<string,string[]> spicyCommands = new Dictionary<string,string[]>();
-
-        void Start()
-        {
-            if (consoleOutput != null)
+        private void Awake() {
+            if (IsEnabledAndExists(isLoggingEnabled,consoleOutputText))
             {
-                consoleOutput.text = string.Empty;
-            }
-            else
-            {
-                this.enabled = false;
-                Debug.LogError("ConsoleOutput TMP_Text not assigned. Disabling ConsoleManagerController.");
+                consoleOutputText.text = string.Empty;
             }
 
-            if (suggestionsText != null)
+            if (IsEnabledAndExists(isSuggestionEnabled,consoleSuggestionsText))
             {
-                suggestionsText.text = string.Empty;
+                consoleSuggestionsText.text = string.Empty;
             }
-            else
-            {
-                Debug.LogError("SuggestionsText TMP_Text not assigned.");
-            }
-
-            // Populate the list of commands with SpicyCommand attribute on Start
-            Console_Enable(true);
         }
-        
-        void Update()
+
+        private void Start() {
+            GetAllCommands();
+        }
+
+        public void ExecuteString(string fullCommand)
         {
-            if (isListening)
+
+            if (fullCommand != string.Empty)
             {
+                string[] commandParts = fullCommand.Split(' ');
 
-                consoleOutput.text = string.Empty;
-
-                foreach (string _log in allLogs)
+                if (commandsDictionary.ContainsKey(commandParts[0]))
                 {
-                    consoleOutput.text += _log + "\n";
-                }
-            }
-        }
+                    MethodInfo wantedCommand = commandsDictionary[commandParts[0]];
 
-        [SpicyCommand("spicy_console_visible")]
-        private void Console_Enable(bool isEnabled) {
-            
-            if (isEnabled)
-            {
-                GetAllSpicyCommands();
+                    var type = wantedCommand.DeclaringType;
 
-                if (!isListening)
-                {
-                    Application.logMessageReceived += DebugListener;
-                    isListening = true;
-                }          
-
-                consoleObject.SetActive(true);
-            } else {
-
-                Application.logMessageReceived -= DebugListener;
-
-                isListening = false;
-
-                consoleObject.SetActive(false);
-            }
-        }
-
-        private void DebugListener(string logString, string stackTrace, LogType type)
-        {
-            LogConverter(logString,"",type.ToString());
-        }
-
-        private void LogConverter(string logString, string stackTrace = "", string _type = "Log")
-        {
-
-            LogType type = (LogType) Enum.Parse(typeof(LogType),_type,true);
-
-            switch (type)
-            {
-                case LogType.Error:
-                    allLogs.Add($"<color=red>{logString}</color>");
-                break;
-                case LogType.Warning:
-                    allLogs.Add($"<color=yellow>{logString}</color>");
-                break;
-                case LogType.Log:
-                    allLogs.Add($"{logString}");
-                break;
-                case LogType.Assert:
-                    allLogs.Add($"<b>{logString}/b>");
-                break;
-            }
-        }
-
-        // This method gets all methods with SpicyCommand attribute and populates the list
-        private void GetAllSpicyCommands()
-        {
-
-            Assembly[] allAssembles = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (Assembly currentAssembly in allAssembles)
-            {
-                Type[] types = currentAssembly.GetTypes();
-                foreach (Type type in types)
-                {
-                    MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                    foreach (MethodInfo method in methods)
+                    UnityEngine.Object instance = FindObjectOfType(type);
+                    if (instance != null)
                     {
-                        SpicyCommandAttribute attribute = method.GetCustomAttribute<SpicyCommandAttribute>();
-                        if (attribute != null)
+                        string[] parametersCommand = commandParts.Skip(1).ToArray();
+
+                        if (parametersCommand.Count() <= wantedCommand.GetParameters().Count())
                         {
-                            List<string> parametersNamesAndType = new List<string>();
-                            foreach (ParameterInfo parameter in method.GetParameters())
-                            {
-                                parametersNamesAndType.Add($"| {parameter.Name} [{parameter.ParameterType.Name}] |");
-                            }
-                            spicyCommands.Add(attribute.CustomName,parametersNamesAndType.ToArray());
-                        }
-                    }
-                }
-            }
-        }
-
-        // RANDOM IMPLEMATION
-        public void GetAllSuggestions(string writed)
-        {
-            if (!string.IsNullOrEmpty(writed))
-            {
-                DisplayBoldSuggestions(writed);
-            }
-        }
-
-        // This method displays suggestions in the suggestionsText TMP_Text with typed characters bold
-        private void DisplayBoldSuggestions(string typedCharacters)
-        {
-            string[] _array_typeCharacters = typedCharacters.Split(' ');
-            if (suggestionsText != null)
-            {
-                // Replace the typed characters with bolded characters in the suggestion
-                string boldedSuggestion = SuggestCommand(_array_typeCharacters).Replace(_array_typeCharacters[0], $"<color=#FFFFFF><b>{_array_typeCharacters[0]}</b></color>");
-                suggestionsText.text = boldedSuggestion;
-            }
-            else
-            {
-                Debug.LogError("SuggestionsText TMP_Text not assigned.");
-            }
-        }
-
-        private string SuggestCommand(string[] typedCharacter)
-        {
-            // Filter commands starting with the typed character
-            var matchingCommands = spicyCommands.Where(command => command.Key.StartsWith(typedCharacter[0], StringComparison.OrdinalIgnoreCase));
-
-            string _commandParams = string.Empty;
-            List<string> _commands = new List<string>();
-
-            foreach (KeyValuePair<string, string[]> command in matchingCommands)
-            {
-                var typedParams = typedCharacter.Skip(1).ToArray();
-
-                for (int i = 0; i < command.Value.Length; i++)
-                {
-                    if (i < typedParams.Length && typedParams[i] != null)
-                    {
-                        _commandParams += ($" <color=#FFFFFF><b>{command.Value[i]}</b></color>");
-                    }
-                    else
-                    {
-                        _commandParams += $" {command.Value[i]}";
-                    }
-                }
-
-                _commands.Add($"{command.Key} {_commandParams}");
-            }
-
-            // Create a suggestion string with the typed character bold
-            string suggestion = string.Join(", ", _commands);
-
-            return suggestion;
-        }
-
-        // This method executes the command
-        public void ExecuteCommand(string fullCommand)
-        {
-            splitedCommand = fullCommand.Split(' ');
-
-            if (splitedCommand.Length < 1)
-            {
-                Debug.LogError("Invalid command format: " + fullCommand);
-                return;
-            }
-
-            string commandName = splitedCommand[0];
-
-            if (string.IsNullOrEmpty(commandName))
-            {
-                Debug.LogError("Command name is empty.");
-                return;
-            }
-
-            Debug.Log($"Executing command: {fullCommand}");
-
-            parametersCommand = splitedCommand.Skip(1).ToArray();
-
-            Assembly[] allAssembles = AppDomain.CurrentDomain.GetAssemblies();
-
-            foreach (Assembly currentAssembly in allAssembles)
-            {
-
-                Type[] types = currentAssembly.GetTypes();
-
-                foreach (Type type in types)
-                {
-
-                    if (!spicyCommands.ContainsKey(commandName))
-                    {
-                        Debug.LogError($"Command '{commandName}' not found!");
-                        return;
-                    }
-
-                    MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-                    foreach (MethodInfo method in methods)
-                    {
-                        SpicyCommandAttribute attribute = method.GetCustomAttribute<SpicyCommandAttribute>();
-                        if ((attribute != null) && (attribute.CustomName == commandName))
-                        {
-                            ParameterInfo[] methodParams = method.GetParameters();
-
-                            allParams = string.Empty;
-
-                            foreach (ParameterInfo parameter in methodParams)
-                            {
-                                allParams += $"'[{parameter.Name} {parameter.ParameterType.Name}]' ";
-                            }
-
-                            if (methodParams.Length == parametersCommand.Length)
-                            {
-                                object instance = FindObjectOfType(type);
-
-                                if (instance == null)
-                                {
-                                    Debug.LogError($"Instance of type {type} not found.");
-                                    return;
-                                }
-
-                                object[] convertedParameters = ConvertParameters(parametersCommand, methodParams);
-
-                                if (convertedParameters != null)
-                                {
-                                    try
-                                    {
-                                        Debug.Log($"Invoking method: {method.Name}");
-                                        foreach (object obj in convertedParameters)
-                                        {
-                                            Debug.Log($"{obj.GetType()} {obj.ToString()}");
-                                        }
-                                        method.Invoke(instance, convertedParameters);
-                                        Debug.Log($"Command '{commandName}' executed successfully.");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Debug.LogError($"Error executing command '{commandName}': {ex.Message}");
-                                    }
-                                    return;
-                                }
-                                else
-                                {
-                                    Debug.LogError($"Error converting parameters for command '{commandName} {allParams}'.");
-                                }
-                            }
-                            else
-                            {
-                                Debug.LogError($"Incorrect number of parameters for command '{commandName} {allParams}'.");
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        private object[] ConvertParameters(string[] parameters, ParameterInfo[] methodParams)
-        {
-            if (parameters.Length != methodParams.Length)
-            {
-                Debug.LogError($"Incorrect number of parameters. Expected {methodParams.Length}, but got {parameters.Length}.");
-                return null;
-            }
-
-            object[] convertedParameters = new object[parameters.Length];
-
-            for (int i = 0; i < parameters.Length; i++)
-            {
-                Type paramType = methodParams[i].ParameterType;
-
-                try
-                {
-                    if (parameters[i].StartsWith("{") && parameters[i].EndsWith("}"))
-                    {
-                        string _conv0 = parameters[i].Replace('}','{').Split('{')[1];
-                        string[] _conv_array = _conv0.Split(':');
-
-                        switch (_conv_array[0].ToLower())
-                        {
-                            case "array":
-                                if (_conv_array[1].StartsWith("(") && _conv_array[1].EndsWith(")"))
-                                {
-                                    string _conv1 = _conv_array[1].Replace(')','(').Split('(')[1];
-                                    string[] _array = _conv1.Split(',');
-
-                                    convertedParameters[i] = _array;
-                                }
-                            break;
-                            case "list":
-                                if (_conv_array[1].StartsWith("(") && _conv_array[1].EndsWith(")"))
-                                {
-                                    string _conv1 = _conv_array[1].Replace(')','(').Split('(')[1];
-                                    string[] _array = _conv1.Split(',');
-
-                                    List<string> _list = new List<string>(_array);
-
-                                    convertedParameters[i] = Convert.ChangeType(_list,paramType);
-                                }
-                            break;
-                            case "dictionary":
-                                if (_conv_array[1].StartsWith("(") && _conv_array[1].EndsWith(")"))
-                                {
-                                    string _conv1 = _conv_array[1].Replace(')','(').Split('(')[1];
-                                    string[] _array = _conv1.Split(',');
-
-                                    Dictionary<string,string> _dictionary = new Dictionary<string, string>();
-
-                                    foreach (string _str in _array)
-                                    {
-                                        string _conv2 = _str.Replace('[',']').Split(']')[1];
-                                        string[] _array2 = _conv2.Split(';');
-                                        _dictionary.Add(_array2[0],_array2[1]);
-                                    }
-
-                                    convertedParameters[i] = Convert.ChangeType(_dictionary,paramType);
-                                }
-                            break;
+                            commandsDictionary[commandParts[0]].Invoke(instance,ConvertStringParamsToParams(parametersCommand,wantedCommand.GetParameters()));
+                        } else {
+                            SpicyMessage(LogType.Warning,$"Writed Size of Paramters is {parametersCommand.Count()} but wanted size is {wantedCommand.GetParameters().Count()}");
                         }
                     } else {
-                        convertedParameters[i] = Convert.ChangeType(parameters[i], paramType);
+                        SpicyMessage(LogType.Warning,$"Command {commandParts[0]} need instance of {type}");
                     }
+                } else {
+                    SpicyMessage(LogType.Warning,($"Command {commandParts[0]} not found!"));
                 }
-                catch (Exception ex)
+            }
+        }
+
+        // Getting Paramters
+
+        private UnityEngine.Object[] ConvertStringParamsToParams(string[] paramStrings, ParameterInfo[] parameterInfo)
+        {
+
+            List<UnityEngine.Object> convertedParameters = new List<UnityEngine.Object>();
+
+            for (int i = 0; i < paramStrings.Count(); i++)
+            {
+                ParameterInfo param = parameterInfo[i];
+                string stringParam = paramStrings[i];
+
+                try {
+                    convertedParameters.Add((UnityEngine.Object) Convert.ChangeType(stringParam,param.ParameterType));
+                } catch (Exception ex)
                 {
-                    Debug.LogError($"Error converting parameter {i + 1} to type {paramType}: {ex.Message}");
-                    return null;
+                    //convertedParameters.Add((UnityEngine.Object) param.DefaultValue);
+                    SpicyMessage(LogType.Warning,ex.Message);
                 }
             }
 
-            return convertedParameters;
+            return convertedParameters.ToArray();
         }
+
+        // Getting commands
+
+        private void GetAllCommands()
+        {
+
+            // TODO: REMOVE IT
+            /*
+            // 
+            Assembly[] assemblies = GetAllAssemblies();
+            Type[] types = GetAllTypesFromAssemblies(assemblies);
+            MethodInfo[] methodInfos = GetMethodInfosFromTypes(types);
+
+            //
+            MethodInfo[] methodInfosWithAttribute = GetCommandsFromAllMethods(methodInfos);
+
+            commandsDictionary = ConvertCommandsArrayIntoCommandsDictionary(methodInfosWithAttribute);
+            */
+
+            /*
+            theoretically can use this:
+            commands = GetCommandsFromAllMethods(GetMethodInfosFromTypes(GetAllTypesFromAssemblies(GetAllAssemblies())));
+            */
+
+            //
+            commandsDictionary = ConvertCommandsArrayIntoCommandsDictionary(ByteConverter.SerializedMethodInfoArrayToInfoMethodArray(file.methodInfos));
+        }
+
+        // TODO: REMOVE IT
+        /*
+
+        private Assembly[] GetAllAssemblies()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies();
+        }
+
+        private Type[] GetAllTypesFromAssemblies(Assembly[] assemblies)
+        {
+            List<Type> typesToReturn = new List<Type>();
+
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (Type type in assembly.GetTypes())
+                {
+                    typesToReturn.Add(type);
+                }
+            }
+
+            return typesToReturn.ToArray();
+        }
+
+        private MethodInfo[] GetMethodInfosFromTypes(Type[] types)
+        {
+
+            List<MethodInfo> methodInfosToReturn = new List<MethodInfo>();
+
+            foreach (Type type in types)
+            {
+                foreach (MethodInfo methodInfo in type.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                {
+                    methodInfosToReturn.Add(methodInfo);
+                }
+            }
+
+            return methodInfosToReturn.ToArray();
+        }
+
+        private MethodInfo[] GetCommandsFromAllMethods(MethodInfo[] methodInfos)
+        {
+            List<MethodInfo> methodInfosWithAttributes = new List<MethodInfo>();
+
+            foreach (MethodInfo methodInfo in methodInfos)
+            {
+                if (true)
+                {
+                    methodInfosWithAttributes.Add(methodInfo);
+                }
+            }
+
+            return methodInfosWithAttributes.ToArray();
+        }
+
+        */
+
+        private Dictionary<string,MethodInfo> ConvertCommandsArrayIntoCommandsDictionary(MethodInfo[] methodInfos)
+        {
+            Dictionary<string,MethodInfo> keyValuePairs = new Dictionary<string,MethodInfo>();
+
+            foreach (MethodInfo methodInfo in methodInfos)
+            {
+                SpicyCommandAttribute attribute = methodInfo.GetCustomAttribute<SpicyCommandAttribute>();
+                string keyName = attribute.CustomName;
+                //Debug.Log($"Adding: Dictionary(K: {keyName} V: {methodInfo.Name})");
+                keyValuePairs.Add(keyName,methodInfo);
+            }
+
+            return keyValuePairs;
+        }
+
+        // Other
+
+        private bool IsEnabledAndExists(bool isEnabled, UnityEngine.Object objectToCheck = null)
+        {
+            if (isEnabled && objectToCheck != null)
+                return true;
+
+            SpicyMessage(LogType.Warning, $"SpicyConsoleRuntime: {"N/A"} is null");
+            DisableComponent();
+            return false;
+        }
+        
+        private void DisableComponent()
+        {
+            this.enabled = false;
+        }
+
+        private void SpicyMessage(LogType logType, string message = "")
+        {
+            if (areConsoleMessagesEnabled)
+            {
+                switch (logType) {
+                    case LogType.Log: Debug.Log(message); break;
+                    case LogType.Error: Debug.LogError(message); break;
+                    case LogType.Warning: Debug.LogWarning(message); break;
+                }
+            }
+        } 
     }
 }
