@@ -1,3 +1,36 @@
 site_name: SpicyConsole Docs
 theme:
   name: material
+  features:
+    - tabs
+    - instant
+    - content.code.copy
+    - content.code.annotate
+    - navigation.footer
+  palette: 
+
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to light mode
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+extra:
+  homepage: https://www.lagowiecdev.com/SpicyConsole
+
+copyright: Copyright &copy; 2023 - 2024 LagowiecDev
