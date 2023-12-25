@@ -314,6 +314,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Additional Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commands-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands List
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands List">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-commands-list-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automatic Commands List Generation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Automatic Commands List Generation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-the-commands-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Accessing the Commands List
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-commands-list-retrieval" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manual Commands List Retrieval
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -441,6 +513,78 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Additional Features">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commands-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Commands List
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Commands List">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automatic-commands-list-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Automatic Commands List Generation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Automatic Commands List Generation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How It Works
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-the-commands-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      Accessing the Commands List
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-commands-list-retrieval" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manual Commands List Retrieval
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -506,7 +650,7 @@ public class YourClass : MonoBehaviour
     }
 }
 </code></pre>
-<p>Now, when you type "command_custom_name" in the console during runtime, the <code>Example</code> method will be executed, logging the provided parameter.</p>
+<p>Now, when you type <code>command_custom_name ExampleMSG</code> in the console during runtime, the <code>Example()</code> method will be executed, logging <code>ExampleMSG</code> as the provided parameter.</p>
 <h3 id="note-script-instance-in-scene">Note: Script Instance in Scene</h3>
 <p>For SpicyConsole to function correctly, ensure that your custom script, such as <code>YourClass</code>, is attached to a GameObject in your scene during runtime. This custom script instance is crucial for initializing and managing the SpicyConsole system.</p>
 <h2 id="command-syntax">Command Syntax</h2>
@@ -517,6 +661,50 @@ public class YourClass : MonoBehaviour
 </ul>
 <h2 id="additional-features">Additional Features</h2>
 <p>SpicyConsole offers additional features to enhance your console experience. Explore the documentation to learn about:</p>
+<h3 id="commands-list">Commands List</h3>
+<h4 id="automatic-commands-list-generation">Automatic Commands List Generation</h4>
+<p>SpicyConsole provides a convenient feature that automatically generates a list of all commands marked with the <code>SpicyCommand</code> attribute during every C# script compilation in Unity. This list is then stored as an asset in the following path: <code>Assets/Settings/ThirdParty/LagowiecDev/SpicyConsole/CommandsList.asset</code>
+The generated <code>CommandsList.asset</code> file contains information about each command, including its name, associated method, and any additional attributes specified in the script.</p>
+<h5 id="how-it-works">How It Works</h5>
+<ol>
+<li>
+<p>During the compilation of C# scripts in Unity, SpicyConsole scans for methods with the <code>SpicyCommand</code> attribute.</p>
+</li>
+<li>
+<p>The information about these commands is collected and compiled into the <code>CommandsList.asset</code> file.</p>
+</li>
+<li>
+<p>The asset file is automatically saved in the specified directory for easy access and reference.</p>
+</li>
+</ol>
+<h5 id="accessing-the-commands-list">Accessing the Commands List</h5>
+<p>You can access the generated command list asset in the Unity Editor by navigating to the following path: <code>Assets/Settings/ThirdParty/LagowiecDev/SpicyConsole/CommandsList.asset</code></p>
+<h4 id="manual-commands-list-retrieval">Manual Commands List Retrieval</h4>
+<p>SpicyConsole provides a manual option to retrieve a list of all commands marked with the <code>SpicyCommand</code> attribute directly from the Unity Editor's top bar.</p>
+<p>Where you can find the function: <code>ThirdParty/LagowiecDev/SpicyConsole/Get All Commands</code></p>
+<ol>
+<li>
+<p>In the Unity Editor, navigate to the top bar where you find options like "File," "Edit," and others.</p>
+</li>
+<li>
+<p>Look for the "ThirdParty" menu.</p>
+</li>
+<li>
+<p>Under "ThirdParty," find and click on "LagowiecDev."</p>
+</li>
+<li>
+<p>Within the "LagowiecDev" menu, locate and click on "SpicyConsole."</p>
+</li>
+<li>
+<p>From the dropdown menu, select "Get All Commands."</p>
+</li>
+<li>
+<p>SpicyConsole will generate a list of all commands and display it in the Unity Console or another designated location.</p>
+</li>
+</ol>
+<p>This manual option is useful when you want to explicitly trigger the command list retrieval process. It can be particularly handy for scenarios where automatic compilation may not have occurred, or you want to refresh the command list on-demand.</p>
+<p>Feel free to use this option to conveniently access and review the commands available in your SpicyConsole-enabled project!</p>
+<h3 id="other">Other</h3>
 <ul>
 <li>Parameter types and parsing.</li>
 <li>Command aliases.</li>
